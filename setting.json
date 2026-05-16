@@ -1,0 +1,25 @@
+{
+  "asset_path": "asset/",
+  "tile_data": [
+    {
+      "num": 0,
+      "file": "wall.png",
+      "physics": 1,
+      "name": "벽"
+    },
+    {
+      "num": 1,
+      "file": "tile1.png",
+      "physics": 0,
+      "name": "바닥1"
+    },
+    {
+      "num": 2,
+      "file": "tile2.png",
+      "physics": 0,
+      "name": "바닥2"
+    }
+  ],
+  "output_path": "build/",
+  "map_file_path": "map/"
+}
