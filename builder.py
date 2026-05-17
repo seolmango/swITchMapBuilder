@@ -61,6 +61,8 @@ for i, map_file in enumerate(map_files):
                 else:
                     if int(a) in events:
                         events[int(a)].append((x, y, int(b)))
+                    else:
+                        events[int(a)] = [(x, y, int(b))]
                     new_temp.append([int(a), int(b)])
             data[y].append(new_temp)
     print(f"[맵 데이터 처리] {i+1}/{len(map_files)} - {map_info['name']} 맵 로딩완료")
@@ -97,7 +99,7 @@ for i, map_file in enumerate(map_files):
             checking_index.add((t, checking_distance))
             checking_index.add((t, map_size-checking_distance-1))
         for x, y in checking_index:
-            if tile_store[crt_map[y][x]]["physics"] == 1:
+            if tile_store[crt_map[y][x]]["physics"] in [1, 3]:
                 if (x, y) not in temp_change:
                     temp_change[(x, y)] = (crt_map[y][x], data[y][x][-1][1])
                     crt_map[y][x] = data[y][x][-1][1]
@@ -220,9 +222,9 @@ if args.task == "build":
         }
 
     with open(out_dir / "server_maps.json", "w", encoding="utf-8") as f:
-        json.dump(server_maps, f, ensure_ascii=False, indent=4)
+        json.dump(server_maps, f, ensure_ascii=False, separators=(',', ':'))
     with open(out_dir / "client_maps.json", "w", encoding="utf-8") as f:
-        json.dump(client_maps, f, ensure_ascii=False, indent=4)
+        json.dump(client_maps, f, ensure_ascii=False, separators=(',', ':'))
 
     print(f"[빌드] 서버/클라이언트 JSON 맵 세트(총 {len(map_store)}개 맵) 병합 저장 완료!")
 

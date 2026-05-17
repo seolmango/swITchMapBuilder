@@ -18,6 +18,18 @@
       "file": "tile2.png",
       "physics": 0,
       "name": "바닥2"
+    },
+    {
+      "num": 3,
+      "file": "grass.png",
+      "physics": 2,
+      "name": "수풀"
+    },
+    {
+      "num": 4,
+      "file": "gas.png",
+      "physics": 3,
+      "name": "연막"
     }
   ],
   "output_path": "build/",
