@@ -281,14 +281,14 @@ elif args.task == "preview":
                 preview_img.paste(tile_store[t_id]["image"], (x * 256, y * 256))
 
         initial_dotted = overlay_start_positions(preview_img, temp_map["start_pos"], m_size)
-        initial_dotted.save(map_out_dir / "initial.webp", format="WEBP", lossless=True, quality=100)
+        initial_dotted.save(map_out_dir / "initial.png", format="PNG", lossless=True, quality=100)
 
         for tick in sorted(temp_map["timeline"].keys()):
             changes = temp_map["timeline"][tick]
             for x, y, new_tile_id in changes:
                 preview_img.paste(tile_store[new_tile_id]["image"], (x * 256, y * 256))
 
-            preview_img.save(map_out_dir / f"{tick}tick.webp", format="WEBP", lossless=True, quality=100)
+            preview_img.save(map_out_dir / f"{tick}tick.png", format="PNG", lossless=True, quality=100)
 
         print(f"[미리보기 생성] {m_name} 맵 폴더 내 틱별 이미지 생성 완료!")
 
