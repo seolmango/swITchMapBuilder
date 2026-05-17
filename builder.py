@@ -112,12 +112,55 @@ for i, map_file in enumerate(map_files):
             for key, value in temp_change.items():
                 temp_c.append((key[0], key[1], value[1]))
             timeline[crt_tick] = temp_c
+
+    # start_pos 계산
+    start_positions = {}
+    cx = (map_size - 1) / 2.0
+    cy = (map_size - 1) / 2.0
+
+    for player_count in range(3, 9):
+        radius = (map_size * (0.7 + (player_count - 3) * 0.03)) / 2.0
+
+        positions = []
+        for k in range(player_count):
+            angle = 2* math.pi * k / player_count + (2*math.pi * player_count / 18)
+            sx = max(0, min(int(round(cx + radius * math.cos(angle))), map_size - 1))
+            sy = max(0, min(int(round(cy + radius * math.sin(angle))), map_size - 1))
+
+            if tile_store[initial_map[sy][sx]]["physics"] == 1:
+                search_limit = max(5, map_size // 2)
+                found_alt = False
+                orig_dist_center = math.hypot(sx-cx, sy-cy)
+                for r_search in range(1, search_limit):
+                    candidates = []
+                    for dy in range(-r_search, r_search + 1):
+                        for dx in range(-r_search, r_search + 1):
+                            if max(abs(dx), abs(dy)) == r_search:
+                                nx, ny = sx + dx, sy + dy
+                                if 0 <= nx < map_size and 0 <= ny < map_size:
+                                    if tile_store[initial_map[ny][nx]]["physics"] != 1:
+                                        cand_dist_center = math.hypot(nx-cx, ny-cy)
+                                        dist_from_orig = math.hypot(dx, dy)
+                                        score = dist_from_orig - 0.5 * (cand_dist_center - orig_dist_center)
+
+                                        candidates.append((score, nx, ny))
+                    if candidates:
+                        candidates.sort(key=lambda item: item[0])
+                        sx, sy = candidates[0][1], candidates[0][2]
+                        found_alt = True
+                        break
+            positions.append([sx * 256 + 128, sy * 256 + 128])
+
+        start_positions[player_count] = positions
+
+
     map_store.append({
         "name": map_info["name"],
         "barrier_speed": barrier_speed,
         "size": map_info["size"],
         "initial_map": initial_map,
         "timeline": timeline,
+        "start_pos": start_positions,
     })
     print(f"[맵 시뮬레이션] - {map_info['name']} 완료(총 {crt_tick}틱)")
 
@@ -167,11 +210,13 @@ if args.task == "build":
 
         server_maps[m_name] = {
             "name": m_name, "size": m_size, "barrier_speed": b_speed,
-            "initial_map": srv_init_map, "timeline": srv_timeline
+            "initial_map": srv_init_map, "timeline": srv_timeline,
+            "start_pos": temp_map["start_pos"]
         }
         client_maps[m_name] = {
             "name": m_name, "size": m_size, "barrier_speed": b_speed,
-            "initial_map": cli_init_map, "timeline": cli_timeline
+            "initial_map": cli_init_map, "timeline": cli_timeline,
+            "start_pos": temp_map["start_pos"]
         }
 
     with open(out_dir / "server_maps.json", "w", encoding="utf-8") as f:
@@ -183,6 +228,42 @@ if args.task == "build":
 
 elif args.task == "preview":
     out_base_dir = Path(settings.get("output_path", "./"))
+
+    preview_colors = {
+        3: ((0, 122, 255, 255), 120),  # 파랑
+        4: ((255, 59, 48, 255), 110),  # 빨강
+        5: ((52, 199, 89, 255), 100),  # 초록
+        6: ((255, 204, 0, 255), 90),  # 노랑
+        7: ((175, 82, 222, 255), 80),  # 보라
+        8: ((0, 200, 255, 255), 70)  # 하늘색
+    }
+
+    def overlay_start_positions(base_img, start_pos_data, m_size):
+        canvas_copy = base_img.copy()
+        draw = ImageDraw.Draw(canvas_copy)
+
+        cx_px = m_size * 128
+        cy_px = m_size * 128
+
+        for p_cnt, (color, _) in preview_colors.items():
+            if p_cnt in start_pos_data:
+                ratio = 0.7 + (int(p_cnt) - 3) * 0.03
+                radius_px = ratio * m_size * 128
+
+                line_color = color[:3] + (120,)
+                draw.ellipse(
+                    [cx_px - radius_px, cy_px - radius_px, cx_px + radius_px, cy_px + radius_px],
+                    outline=line_color, width=5
+                )
+
+        for p_cnt, (color, radius) in preview_colors.items():
+            if p_cnt in start_pos_data:
+                for cx_px, cy_px in start_pos_data[p_cnt]:
+                    draw.ellipse(
+                        [cx_px - radius, cy_px - radius, cx_px + radius, cy_px + radius],
+                        fill=color, outline=(255, 255, 255, 255), width=3
+                    )
+        return canvas_copy
 
     for temp_map in map_store:
         m_name = temp_map["name"]
@@ -197,14 +278,15 @@ elif args.task == "preview":
                 t_id = temp_map["initial_map"][y][x]
                 preview_img.paste(tile_store[t_id]["image"], (x * 256, y * 256))
 
-        preview_img.save(map_out_dir / "initial.webp", format="WEBP", lossless=True)
+        initial_dotted = overlay_start_positions(preview_img, temp_map["start_pos"], m_size)
+        initial_dotted.save(map_out_dir / "initial.webp", format="WEBP", lossless=True, quality=100)
 
         for tick in sorted(temp_map["timeline"].keys()):
             changes = temp_map["timeline"][tick]
             for x, y, new_tile_id in changes:
                 preview_img.paste(tile_store[new_tile_id]["image"], (x * 256, y * 256))
 
-            preview_img.save(map_out_dir / f"{tick}tick.webp", format="WEBP", lossless=True)
+            preview_img.save(map_out_dir / f"{tick}tick.webp", format="WEBP", lossless=True, quality=100)
 
         print(f"[미리보기 생성] {m_name} 맵 폴더 내 틱별 이미지 생성 완료!")
 
