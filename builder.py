@@ -211,14 +211,14 @@ if args.task == "build":
             cli_timeline[tick] = [[x, y, tile_store[t_id]["index"]] for x, y, t_id in changes]
 
         server_maps[m_name] = {
-            "name": m_name, "size": m_size, "barrier_speed": b_speed,
+            "size": m_size, "barrier_speed": b_speed,
             "initial_map": srv_init_map, "timeline": srv_timeline,
             "start_pos": temp_map["start_pos"]
         }
         client_maps[m_name] = {
-            "name": m_name, "size": m_size, "barrier_speed": b_speed,
-            "initial_map": cli_init_map, "timeline": cli_timeline,
-            "start_pos": temp_map["start_pos"]
+            "s": m_size, "b": b_speed,
+            "i": cli_init_map, "t": cli_timeline,
+            "p": temp_map["start_pos"]
         }
 
     with open(out_dir / "server_maps.json", "w", encoding="utf-8") as f:
